@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoClicker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06090f;
+            --bg-secondary: #0d1219;
+            --fg: #e4e8ef;
+            --muted: #5a6578;
+            --accent: #00e5a0;
+            --accent-glow: rgba(0, 229, 160, 0.4);
+            --card: rgba(13, 18, 25, 0.8);
+            --border: rgba(90, 101, 120, 0.2);
+            --danger: #ff4757;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .mono {
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Background Effects */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 229, 160, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 160, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow-1 {
+            top: -200px;
+            left: -100px;
+            background: var(--accent);
+        }
+
+        .bg-glow-2 {
+            bottom: -300px;
+            right: -200px;
+            background: #0088ff;
+        }
+
+        /* Main Container */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            background: rgba(6, 9, 15, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #0088ff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .logo-text {
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span {
+            color: var(--accent);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Hero Section */
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            gap: 3rem;
+        }
+
+        /* Counter Display */
+        .counter-wrapper {
+            text-align: center;
+        }
+
+        .counter-label {
+            font-size: 0.875rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.5rem;
+        }
+
+        .counter {
+            font-size: clamp(4rem, 15vw, 8rem);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            background: linear-gradient(180deg, var(--fg) 0%, var(--muted) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: transform 0.1s ease;
+        }
+
+        .counter.bump {
+            transform: scale(1.02);
+        }
+
+        /* Main Click Button */
+        .click-button-container {
+            position: relative;
+        }
+
+        .click-ring {
+            position: absolute;
+            inset: -20px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .click-button-container:hover .click-ring {
+            opacity: 0.3;
+            transform: scale(1);
+        }
+
+        .click-button {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #0d1219, #151c28);
+            border: 3px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .click-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .click-button:hover::before {
+            opacity: 1;
+        }
+
+        .click-button:active {
+            transform: scale(0.95);
+            border-color: var(--accent);
+        }
+
+        .click-button:active .click-icon {
+            transform: scale(0.9);
+        }
+
+        .click-icon {
+            width: 60px;
+            height: 60px;
+            transition: transform 0.15s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .click-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--accent);
+            fill: none;
+            stroke-width: 1.5;
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.4;
+            transform: scale(0);
+            animation: ripple 0.6s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Particles Container */
+        .particles-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 50;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-up 1.5s ease-out forwards;
+        }
+
+        @keyframes float-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-150px) scale(0);
+            }
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(6, 9, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 1.5rem;
+            z-index: 100;
+        }
+
+        .control-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Toggle Switch */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .toggle {
+            width: 64px;
+            height: 34px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 100px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: var(--fg);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle.active .toggle-knob {
+            left: 33px;
+        }
+
+        /* Speed Slider */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .speed-label {
+            font-size: 0.875rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .slider {
+            width: 140px;
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 100px;
+            appearance: none;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px var(--accent-glow);
+            transition: transform 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .speed-value {
+            font-weight: 600;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        /* Reset Button */
+        .reset-btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: var(--danger);
+            color: var(--bg);
+        }
+
+        /* Floating Elements */
+        .float-element {
+            position: fixed;
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .float-circle {
+            width: 300px;
+            height: 300px;
+            border: 1px solid var(--accent);
+            border-radius: 50%;
+            animation: float 20s linear infinite;
+        }
+
+        .float-circle:nth-child(1) {
+            top: 20%;
+            right: -150px;
+        }
+
+        .float-circle:nth-child(2) {
+            bottom: 30%;
+            left: -150px;
+            animation-delay: -10s;
+            animation-direction: reverse;
+        }
+
+        @keyframes float {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .logo-text {
+                font-size: 1.25rem;
+            }
+
+            .status-badge span:last-child {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+
+            .stat-card {
+                padding: 0.75rem;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+            }
+
+            .control-row {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .speed-control {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .slider {
+                flex: 1;
+            }
+        }
+
+        /* Entrance Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Floating Elements -->
+    <div class="float-element float-circle"></div>
+    <div class="float-element float-circle"></div>
+
+    <!-- Particles Container -->
+    <div class="particles-container" id="particles"></div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                </div>
+                <div class="logo-text">Auto<span>Clicker</span></div>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Остановлен</span>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <main class="hero">
+            <!-- Counter -->
+            <div class="counter-wrapper animate-in delay-1">
+                <div class="counter-label">Всего кликов</div>
+                <div class="counter mono" id="counter">0</div>
+            </div>
+
+            <!-- Click Button -->
+            <div class="click-button-container animate-in delay-2">
+                <div class="click-ring"></div>
+                <button class="click-button" id="clickButton" aria-label="Кликнуть">
+                    <div class="click-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                            <path d="M12 8v8M8 12h8" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid animate-in delay-3">
+                <div class="stat-card">
+                    <div class="stat-value mono" id="cpsValue">0.0</div>
+                    <div class="stat-label">Кликов/сек</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value mono" id="peakValue">0</div>
+                    <div class="stat-label">Пик CPS</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value mono" id="sessionValue">0:00</div>
+                    <div class="stat-label">Время</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel animate-in delay-4">
+        <div class="control-content">
+            <div class="control-row">
+                <div class="toggle-wrapper">
+                    <span class="toggle-label">Автокликер</span>
+                    <div class="toggle" id="autoToggle" role="switch" aria-checked="false" tabindex="0">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="speed-control">
+                    <span class="speed-label">Скорость:</span>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="speedSlider" min="1" max="50" value="10">
+                        <span class="speed-value mono" id="speedValue">10 кликов/сек</span>
+                    </div>
+                </div>
+
+                <button class="reset-btn" id="resetBtn">Сбросить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let clicks = 0;
+        let isAutoClicking = false;
+        let autoClickInterval = null;
+        let clickTimestamps = [];
+        let peakCPS = 0;
+        let sessionStart = null;
+        let sessionInterval = null;
+
+        // DOM Elements
+        const counter = document.getElementById('counter');
+        const clickButton = document.getElementById('clickButton');
+        const autoToggle = document.getElementById('autoToggle');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const cpsValue = document.getElementById('cpsValue');
+        const peakValue = document.getElementById('peakValue');
+        const sessionValue = document.getElementById('sessionValue');
+        const resetBtn = document.getElementById('resetBtn');
+        const particlesContainer = document.getElementById('particles');
+
+        // Format number with spaces
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+
+        // Update counter display
+        function updateCounter() {
+            counter.textContent = formatNumber(clicks);
+            counter.classList.add('bump');
+            setTimeout(() => counter.classList.remove('bump'), 100);
+        }
+
+        // Calculate CPS
+        function calculateCPS() {
+            const now = Date.now();
+            clickTimestamps = clickTimestamps.filter(ts => now - ts < 1000);
+            const cps = clickTimestamps.length;
+            cpsValue.textContent = cps.toFixed(1);
+            
+            if (cps > peakCPS) {
+                peakCPS = cps;
+                peakValue.textContent = peakCPS.toFixed(0);
+            }
+        }
+
+        // Create particle
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            const size = Math.random() * 8 + 4;
+            const hue = Math.random() > 0.5 ? '160' : '200';
+            
+            particle.style.cssText = `
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x - size / 2}px;
+                top: ${y - size / 2}px;
+                background: hsl(${hue}, 100%, 50%);
+                box-shadow: 0 0 ${size * 2}px hsl(${hue}, 100%, 50%);
+            `;
+            
+            particlesContainer.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 1500);
+        }
+
+        // Create ripple
+        function createRipple(button, e) {
+            const rect = button.getBoundingClientRect();
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+            ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+            
+            button.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+
+        // Click handler
+        function handleClick(e) {
+            clicks++;
+            clickTimestamps.push(Date.now());
+            updateCounter();
+            calculateCPS();
+
+            // Visual effects
+            createRipple(clickButton, e);
+            
+            // Create multiple particles
+            const rect = clickButton.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createParticle(
+                        centerX + (Math.random() - 0.5) * 100,
+                        centerY + (Math.random() - 0.5) * 100
+                    );
+                }, i * 30);
+            }
+
+            // Start session timer if not started
+            if (!sessionStart) {
+                sessionStart = Date.now();
+                startSessionTimer();
+            }
+        }
+
+        // Session timer
+        function startSessionTimer() {
+            sessionInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                sessionValue.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // Toggle auto-clicker
+        function toggleAutoClicker() {
+            isAutoClicking = !isAutoClicking;
+            
+            autoToggle.classList.toggle('active', isAutoClicking);
+            autoToggle.setAttribute('aria-checked', isAutoClicking);
+            statusDot.classList.toggle('active', isAutoClicking);
+            statusText.textContent = isAutoClicking ? 'Активен' : 'Остановлен';
+
+            if (isAutoClicking) {
+                startAutoClicker();
+            } else {
+                stopAutoClicker();
+            }
+        }
+
+        // Start auto-clicker
+        function startAutoClicker() {
+            const cps = parseInt(speedSlider.value);
+            const interval = 1000 / cps;
+            
+            autoClickInterval = setInterval(() => {
+                const rect = clickButton.getBoundingClientRect();
+                handleClick({
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                });
+            }, interval);
+        }
+
+        // Stop auto-clicker
+        function stopAutoClicker() {
+            if (autoClickInterval) {
+                clearInterval(autoClickInterval);
+                autoClickInterval = null;
+            }
+        }
+
+        // Update speed
+        function updateSpeed() {
+            const cps = parseInt(speedSlider.value);
+            speedValue.textContent = `${cps} кликов/сек`;
+            
+            if (isAutoClicking) {
+                stopAutoClicker();
+                startAutoClicker();
+            }
+        }
+
+        // Reset
+        function resetAll() {
+            clicks = 0;
+            peakCPS = 0;
+            clickTimestamps = [];
+            sessionStart = null;
+            
+            if (sessionInterval) {
+                clearInterval(sessionInterval);
+                sessionInterval = null;
+            }
+            
+            counter.textContent = '0';
+            cpsValue.textContent = '0.0';
+            peakValue.textContent = '0';
+            sessionValue.textContent = '0:00';
+            
+            if (isAutoClicking) {
+                toggleAutoClicker();
+            }
+        }
+
+        // Event listeners
+        clickButton.addEventListener('click', handleClick);
+        
+        autoToggle.addEventListener('click', toggleAutoClicker);
+        autoToggle.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleAutoClicker();
+            }
+        });
+
+        speedSlider.addEventListener('input', updateSpeed);
+        resetBtn.addEventListener('click', resetAll);
+
+        // CPS calculation interval
+        setInterval(calculateCPS, 100);
+
+        // Initial animation
+        document.querySelectorAll('.animate-in').forEach(el => {
+            el.style.animationFillMode = 'backwards';
+        });
+    </script>
+</body>
+</html>
